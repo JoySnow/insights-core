@@ -10,10 +10,12 @@ given to the currently running kernel on boot.
 from insights import Parser, parser, LegacyItemAccess
 from insights.parsers import SkipException, ParseException
 from insights.specs import Specs
+from .mount import LegacyItemAccessPrivate
+
 
 
 @parser(Specs.cmdline)
-class CmdLine(LegacyItemAccess, Parser):
+class CmdLine(LegacyItemAccessPrivate, Parser):
     """
     A parser class for parsing the Linux kernel command line as given in
     ``/proc/cmdline``.
@@ -64,12 +66,13 @@ class CmdLine(LegacyItemAccess, Parser):
     """
 
     def parse_content(self, content):
+        self._allowed_attr = ['cmdline',]
         if not content:
             raise SkipException('Empty output')
         if len(content) != 1:
             raise ParseException('Invalid output: {0}', content)
 
-        self.data = {}
+        self._data = {}
         self.cmdline = content[0].strip()
         for el in self.cmdline.split():
             # Thanks to strip and split, el always contains something.
@@ -77,5 +80,10 @@ class CmdLine(LegacyItemAccess, Parser):
             if "=" in el:
                 key, value = el.split("=", 1)
             if key not in self.data:
-                self.data[key] = []
-            self.data[key].append(value)
+                self._data[key] = []
+            self._data[key].append(value)
+
+    @property
+    def data(self):
+        return self._data
+
