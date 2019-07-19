@@ -55,6 +55,7 @@ Example:
 
 from .. import parser, Parser, get_active_lines, LegacyItemAccess
 from insights.specs import Specs
+from .mount import LegacyItemAccessPrivate
 
 
 PREFIX_FOR_LIST = ("includedir", "include", "module")
@@ -74,7 +75,7 @@ def _handle_key_value(t_dict, key, value):
 
 
 @parser(Specs.krb5)
-class Krb5Configuration(Parser, LegacyItemAccess):
+class Krb5Configuration(Parser, LegacyItemAccessPrivate):
     """
     Class for ``krb5.conf`` and ``krb5.conf.d`` configuration files.
 
@@ -94,6 +95,7 @@ class Krb5Configuration(Parser, LegacyItemAccess):
     """
 
     def parse_content(self, content):
+        self._allowed_attr = ['includedir', 'include', 'module']
         dict_all = {}
         is_squ = False
         section_name = ""
@@ -150,32 +152,36 @@ class Krb5Configuration(Parser, LegacyItemAccess):
                 else:
                     is_squ = True
                     squ_section_name = line.split("=")[0].strip()
-        self.data = dict_all
+        self._data = dict_all
+
+    @property
+    def data(self):
+        return self._data
 
     def sections(self):
         """
         Return a list of section names.
         """
-        return self.data.keys()
+        return self._data.keys()
 
     def has_section(self, section):
         """
         Indicate whether the named section is present in the configuration.
         Return True if the given section is present, and False if not present.
         """
-        return section in self.data
+        return section in self._data
 
     def options(self, section):
         """
         Return a list of option names for the given section name.
         """
-        return self.data[section].keys() if self.has_section(section) else []
+        return self._data[section].keys() if self.has_section(section) else []
 
     def has_option(self, section, option):
         """
         Check for the existence of a given option in a given section.
         Return True if the given option is present, and False if not present.
         """
-        if section not in self.data:
+        if section not in self._data:
             return False
-        return option in self.data[section]
+        return option in self._data[section]

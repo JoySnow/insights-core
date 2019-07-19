@@ -119,6 +119,8 @@ class LegacyItemAccessPrivate(object):
         >>> my_parser.get('fact3', default='no fact')
         'fact 3'
     """
+    _allowed_attrs = set(['_allowed_attr', '_data', 'file_path', 'file_name', 'last_client_run',
+        'args'])
 
     def __getitem__(self, item):
         return self._data[item]
@@ -146,6 +148,21 @@ class LegacyItemAccessPrivate(object):
         """
         for k, v in self._data.items():
             yield k, v
+
+    def __getattr__(self, name):
+        print("__getattr__: ", self, name)
+        try:
+            return self._data[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    def __setattr__(self, name, value):
+        print("__setattr__: ", self, name, value)
+        if name in LegacyItemAccessPrivate._allowed_attrs or name in self._allowed_attr: # "_data":
+            object.__setattr__(self, name, value)
+        else:
+            raise AttributeError(name, value, "No allow write")
+
 
 
 class MountOpts(LegacyItemAccessPrivate):
@@ -182,17 +199,17 @@ class MountOpts(LegacyItemAccessPrivate):
     def __init__(self, data={}):
         self._data = data
 
-    def __getattr__(self, name):
-        try:
-            return self._data[name]
-        except KeyError:
-            raise AttributeError(name)
+    #def __getattr__(self, name):
+    #    try:
+    #        return self._data[name]
+    #    except KeyError:
+    #        raise AttributeError(name)
 
-    def __setattr__(self, name, value):
-        if name == "_data":
-            object.__setattr__(self, name, value)
-        else:
-            raise AttributeError(name, value, "No allow write")
+    #def __setattr__(self, name, value):
+    #    if name == "_data":
+    #        object.__setattr__(self, name, value)
+    #    else:
+    #        raise AttributeError(name, value, "No allow write")
 
 
 class MountEntry(LegacyItemAccessPrivate, CommandParser):
@@ -217,18 +234,6 @@ class MountEntry(LegacyItemAccessPrivate, CommandParser):
 
     def __init__(self, data={}):
         self._data = data
-
-    def __getattr__(self, name):
-        try:
-            return self._data[name]
-        except KeyError:
-            raise AttributeError(name)
-
-    def __setattr__(self, name, value):
-        if name == "_data":
-            object.__setattr__(self, name, value)
-        else:
-            raise AttributeError(name, value, "No allow write")
 
 
 @parser(Specs.mount)
